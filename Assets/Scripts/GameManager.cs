@@ -5,6 +5,15 @@ public class GameManager : MonoBehaviour
 
     public int Bullets;
     public int Players;
+    public bool isPrivate = false;
+    [SerializeField]
+    private GameObject lobbyUI;
+    [SerializeField]
+    GameObject mainMenuUI;
+    [SerializeField]
+    GameObject activeLobbiesUI;
+    [SerializeField]
+    private SessionManager sessionManager;
 
     public void Bullet1()
     {
@@ -49,5 +58,45 @@ public class GameManager : MonoBehaviour
     public void Player6()
     {
         Players = 6;
+    }
+    
+    private void OnEnable()
+    {
+        sessionManager.OnSessionJoined += PlayerJoined;
+    }
+
+    private void OnDisable()
+    {
+        sessionManager.OnSessionJoined -= PlayerJoined;
+    }
+    public void OpenLobby()
+    {
+        isPrivate = false;
+    }
+    public void CloseLobby()
+    {
+        isPrivate = true;
+    }
+    
+    public void SessionStarted()
+    {
+        mainMenuUI.SetActive(false);
+        lobbyUI.SetActive(true);
+    }
+
+    public void ShowActiveLobbies()
+    {
+        mainMenuUI.SetActive(false);
+        activeLobbiesUI.SetActive(true);
+    }
+
+    public void PlayerJoined()
+    {
+        activeLobbiesUI.SetActive(false);
+        Invoke(nameof(activateLobby),5f);
+    }
+    void activateLobby()
+    {
+        lobbyUI.SetActive(true);
     }
 }
