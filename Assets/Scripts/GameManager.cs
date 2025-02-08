@@ -1,6 +1,6 @@
 using UnityEngine;
-
-public class GameManager : MonoBehaviour
+using Unity.Netcode;
+public class GameManager : NetworkBehaviour
 {
 
     public int Bullets;
@@ -14,6 +14,8 @@ public class GameManager : MonoBehaviour
     GameObject activeLobbiesUI;
     [SerializeField]
     private SessionManager sessionManager;
+    [SerializeField] GameObject multiplayerSpawnManager;
+    [SerializeField] private GameObject gameScreen;
 
     public void Bullet1()
     {
@@ -93,10 +95,30 @@ public class GameManager : MonoBehaviour
     public void PlayerJoined()
     {
         activeLobbiesUI.SetActive(false);
-        Invoke(nameof(activateLobby),5f);
-    }
-    void activateLobby()
-    {
         lobbyUI.SetActive(true);
     }
+
+    public bool IsLobbyHost() {
+        return sessionManager.activeSession.IsHost;
+    }
+    public void startGame()
+    {
+        if(!IsLobbyHost())
+            return;
+        if (IsServer)
+        {
+            multiplayerSpawnManager.SetActive(true);
+            lobbyUI.SetActive(false);
+            gameScreen.SetActive(true);
+            startGameClientRpc();
+        }
+    }
+    [ClientRpc]
+    void startGameClientRpc()
+    {
+        multiplayerSpawnManager.SetActive(true);
+        lobbyUI.SetActive(false);
+        gameScreen.SetActive(true);
+    }
+    
 }
