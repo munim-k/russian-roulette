@@ -17,49 +17,14 @@ public class GameManager : NetworkBehaviour
     [SerializeField] GameObject multiplayerSpawnManager;
     [SerializeField] private GameObject gameScreen;
 
-    public void Bullet1()
-    {
-        Bullets = 1;
+    [SerializeField] Bottle bottle;
+
+    public void SetBullets(int bullets) {
+        Bullets = bullets;
     }
-    public void Bullet2()
-    {
-        Bullets = 2;
-    }public void Bullet3()
-    {
-        Bullets = 3;
-    }public void Bullet4()
-    {
-        Bullets = 4;
-    }public void Bullet5()
-    {
-        Bullets = 5;
-    }public void Bullet6()
-    {
-        Bullets = 6;
-    }
-    public void Player1()
-    {
-        Players = 1;
-    }
-    public void Player2()
-    {
-        Players = 2;
-    }
-    public void Player3()
-    {
-        Players = 3;
-    }
-    public void Player4()
-    {
-        Players = 4;
-    }
-    public void Player5()
-    {
-        Players = 5;
-    }
-    public void Player6()
-    {
-        Players = 6;
+
+    public void SetPlayers(int players) {
+        Players = players;
     }
     
     private void OnEnable()
@@ -101,7 +66,7 @@ public class GameManager : NetworkBehaviour
     public bool IsLobbyHost() {
         return sessionManager.activeSession.IsHost;
     }
-    public void startGame()
+    public void StartGame()
     {
         if(!IsLobbyHost())
             return;
@@ -110,15 +75,27 @@ public class GameManager : NetworkBehaviour
             multiplayerSpawnManager.SetActive(true);
             lobbyUI.SetActive(false);
             gameScreen.SetActive(true);
-            startGameClientRpc();
+            StartGameClientRpc();
+
+            int playersInGame = sessionManager.activeSession.Players.Count;
+            int firstTurn = Random.Range(0, playersInGame);
+
+            SpinBottleClientRpc(firstTurn, Random.Range(1, 5), Random.Range(3, 6));
         }
     }
     [ClientRpc]
-    void startGameClientRpc()
+    void StartGameClientRpc()
     {
         multiplayerSpawnManager.SetActive(true);
+        multiplayerSpawnManager.GetComponent<MultiplayerSpawnManager>().OnNetworkSpawnCustom();
         lobbyUI.SetActive(false);
         gameScreen.SetActive(true);
+    }
+
+    [ClientRpc]
+    void SpinBottleClientRpc(int playerNumber, int spins, int time)
+    {
+        bottle.SpinBottle(playerNumber, spins, time);
     }
     
 }

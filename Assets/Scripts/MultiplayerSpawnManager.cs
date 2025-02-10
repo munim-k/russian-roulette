@@ -1,25 +1,49 @@
 using UnityEngine;
 using Unity.Netcode;
 
-
 public class MultiplayerSpawnManager : NetworkBehaviour
 {
     [SerializeField] private Transform[] spawnPoints;  
     [SerializeField] private GameObject playerPrefab;
-    [SerializeField] private GameManager gameManager;
 
-    public override void OnNetworkSpawn()
+    public void OnNetworkSpawnCustom()
     {
+        Debug.Log("OnNetworkSpawn called");
+
         if (IsServer)
         {
-            int spawnIndex = (int)NetworkManager.Singleton.LocalClientId % gameManager.Players;
-            SpawnPlayer(spawnIndex);
+            Debug.Log("Server detected, spawning players...");
+            SpawnPlayers();
         }
     }
 
-    private void SpawnPlayer(int spawnIndex)
+    private void SpawnPlayers()
     {
-        GameObject playerInstance = Instantiate(playerPrefab, spawnPoints[spawnIndex].position, Quaternion.identity);
-        playerInstance.GetComponent<NetworkObject>().Spawn(true);  // Spawn the player for all clients
+        Debug.Log("Spawning players for all connected clients");
+
+        foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
+        {
+            Debug.Log($"Spawning player for ClientID: {clientId}");
+            SpawnPlayer(clientId);
+        }
+    }
+
+    private void SpawnPlayer(ulong clientId)
+    {
+        // Calculate spawn index based on clientId
+        int spawnIndex = (int)clientId % spawnPoints.Length;
+
+        // Log the clientId and spawnIndex for debugging
+        Debug.Log($"ClientID: {clientId}, SpawnIndex: {spawnIndex}");
+
+        // Get the spawn position
+        Vector3 spawnPosition = spawnPoints[spawnIndex].position;
+
+        // Instantiate the player prefab
+        GameObject playerInstance = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+
+        // Spawn the player on the network with ownership
+        NetworkObject networkObject = playerInstance.GetComponent<NetworkObject>();
+        networkObject.SpawnWithOwnership(clientId, true);
     }
 }
