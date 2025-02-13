@@ -47,7 +47,7 @@ public class PlayerListManager : MonoBehaviour
          var playerName = "Anonymous";
          if (player.Properties.TryGetValue("playerName", out var playerNameProperty))
             playerName = playerNameProperty.Value;
-         Debug.Log(playerName);
+            // Debug.Log(playerName);
          
          playerListItem.Initialize(playerName, playerId);
       }

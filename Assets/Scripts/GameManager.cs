@@ -1,7 +1,10 @@
 using UnityEngine;
 using Unity.Netcode;
+
 public class GameManager : NetworkBehaviour
 {
+
+    public static GameManager Instance;
 
     public int Bullets;
     public int Players;
@@ -17,7 +20,33 @@ public class GameManager : NetworkBehaviour
     [SerializeField] GameObject multiplayerSpawnManager;
     [SerializeField] private GameObject gameScreen;
 
-    [SerializeField] Bottle bottle;
+    [SerializeField] GameObject bottle;
+    [SerializeField] GameObject gun;
+
+    // bool gameStarted = false;
+    // bool allowShoot = false;
+
+    private void Awake()
+    {
+        if (Instance == null)
+            Instance = this;
+        else
+            Destroy(gameObject);
+    }
+
+    public void GameOver() {
+        // gameStarted = false;
+        // allowShoot = false;
+        gun.SetActive(false);
+        // shootButton.SetActive(false);
+        // bottle.gameObject.SetActive(false);
+        // gameScreen.SetActive(false);
+        // lobbyUI.SetActive(true);
+        // multiplayerSpawnManager.SetActive(false);
+        // activeLobbiesUI.SetActive(false);
+        // mainMenuUI.SetActive(true);
+        // TurnManager.Instance.ResetGame();
+    }
 
     public void SetBullets(int bullets) {
         Bullets = bullets;
@@ -66,6 +95,7 @@ public class GameManager : NetworkBehaviour
     public bool IsLobbyHost() {
         return sessionManager.activeSession.IsHost;
     }
+
     public void StartGame()
     {
         if(!IsLobbyHost())
@@ -77,12 +107,40 @@ public class GameManager : NetworkBehaviour
             gameScreen.SetActive(true);
             StartGameClientRpc();
 
-            int playersInGame = sessionManager.activeSession.Players.Count;
-            int firstTurn = Random.Range(0, playersInGame);
+            // for (int i = 0; i < sessionManager.activeSession.Players.Count; i++)
+            // {
+            //     // Debug.Log("Player " + i + ": " + sessionManager.activeSession.Players[i].Id);
+            // }
 
+            int playersInGame = sessionManager.activeSession.Players.Count;
+
+            // Debug.Log("Players in Game: " + playersInGame);
+            
+            // Initialize TurnManager
+            TurnManager.Instance.totalPlayers.Value = playersInGame;
+            TurnManager.Instance.totalBullets = Bullets;
+            TurnManager.Instance.currentBulletsInBarrel.Value = Bullets;
+            TurnManager.Instance.sessionManager = sessionManager;
+            TurnManager.Instance.alivePlayerCount.Value = playersInGame;
+            // TurnManager.Instance.currentPlayerId = sessionManager.activeSession.CurrentPlayer.Id;
+            // TurnManager.Instance.alivePlayers = new bool[playersInGame];
+            Debug.Log(TurnManager.Instance.playerIds);
+            for (int i = 0; i < playersInGame; i++)
+            {
+                // TurnManager.Instance.alivePlayers[i] = true;
+                TurnManager.Instance.alivePlayers.Add(true);
+                // TurnManager.Instance.playerIds.Value.Add(sessionManager.activeSession.Players[i].Id);
+                TurnManager.Instance.playerIds.Add(sessionManager.activeSession.Players[i].Id);
+            }
+
+            int firstTurn = Random.Range(0, playersInGame);
+            TurnManager.Instance.currentTurnIndex.Value = firstTurn;
+            TurnManager.Instance.currentTurn.Value = sessionManager.activeSession.Players[firstTurn].Id;
             SpinBottleClientRpc(firstTurn, Random.Range(1, 5), Random.Range(3, 6));
+            TurnManager.Instance.ChangeTurnClientRpc(sessionManager.activeSession.Players[firstTurn].Id);
         }
     }
+
     [ClientRpc]
     void StartGameClientRpc()
     {
@@ -90,12 +148,16 @@ public class GameManager : NetworkBehaviour
         multiplayerSpawnManager.GetComponent<MultiplayerSpawnManager>().OnNetworkSpawnCustom();
         lobbyUI.SetActive(false);
         gameScreen.SetActive(true);
+        // gameStarted = true;
     }
 
     [ClientRpc]
     void SpinBottleClientRpc(int playerNumber, int spins, int time)
     {
-        bottle.SpinBottle(playerNumber, spins, time);
+        // bottle.gameObject.SetActive(true);
+        bottle.GetComponent<Bottle>().SpinBottle(playerNumber, spins, time);
     }
+
+
     
 }

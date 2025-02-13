@@ -1,8 +1,13 @@
 using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
-public class Bottle : MonoBehaviour
+public class Bottle : NetworkBehaviour
 {
+
+    [SerializeField] GameObject shootButton; // To enable after spin 
+    [SerializeField] GameObject gun; // To display gun
+
     void Start() {
         transform.rotation = Quaternion.Euler(0, 0, 0);
     }
@@ -37,5 +42,9 @@ public class Bottle : MonoBehaviour
 
         // Ensure the bottle lands exactly on the target degree
         transform.eulerAngles = new Vector3(transform.eulerAngles.x, transform.eulerAngles.y, startRotation + totalRotation);
+        shootButton.SetActive(true);
+        // gameObject.SetActive(false);
+        gun.SetActive(true);
+        gun.transform.rotation = gameObject.transform.rotation;
     }
 }

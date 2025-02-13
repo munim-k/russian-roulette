@@ -8,7 +8,7 @@ public class MultiplayerSpawnManager : NetworkBehaviour
 
     public void OnNetworkSpawnCustom()
     {
-        Debug.Log("OnNetworkSpawn called");
+        // Debug.Log("OnNetworkSpawn called");
 
         if (IsServer)
         {

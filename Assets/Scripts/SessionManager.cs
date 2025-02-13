@@ -27,6 +27,7 @@ public class SessionManager : Singleton<SessionManager> {
             await UnityServices.InitializeAsync(); // Initialize Unity Gaming Services SDKs.
             await AuthenticationService.Instance.SignInAnonymouslyAsync(); // Anonymously authenticate the player
             Debug.Log($"Sign in anonymously succeeded! PlayerID: {AuthenticationService.Instance.PlayerId}");
+            // TurnManager.Instance.currentPlayerId = AuthenticationService.Instance.PlayerId;
             
             // Start a new session as a host
            // StartSessionAsHost();
