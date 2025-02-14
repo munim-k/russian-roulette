@@ -33,8 +33,18 @@ public class Player : NetworkBehaviour
     {
         base.OnNetworkSpawn();
         if (IsOwner || IsLocalPlayer) {
+            sessionId = TurnManager.Instance.currentPlayerId;
             gameObject.GetComponent<SpriteRenderer>().color = Color.green;
             GameObject.FindAnyObjectByType<PlayerManager>().player = gameObject;
+        }
+        clientId = OwnerClientId;
+    }
+
+    [ClientRpc]
+    public void SetupClientRpc(ulong clientId, string sessionId) {
+        if (clientId == OwnerClientId) {
+            this.clientId = clientId;
+            this.sessionId = sessionId;
         }
     }
 }

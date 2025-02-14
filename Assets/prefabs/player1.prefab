@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: -5652530228200085044}
   m_Layer: 3
   m_Name: player1
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -133,6 +133,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   bangLogo: {fileID: 5792779967558531001}
+  clientId: 0
+  sessionId: 
 --- !u!1 &5792779967558531001
 GameObject:
   m_ObjectHideFlags: 0

@@ -17,12 +17,21 @@ public class GameManager : NetworkBehaviour
     GameObject activeLobbiesUI;
     [SerializeField]
     private SessionManager sessionManager;
+
     [SerializeField] GameObject multiplayerSpawnManager;
     [SerializeField] private GameObject gameScreen;
+
+    [SerializeField] private GameObject gameOverScreen;
+    [SerializeField] TMPro.TextMeshProUGUI gameOverText;
+
 
     [SerializeField] GameObject bottle;
     [SerializeField] GameObject gun;
     [SerializeField] GameObject shootButton;
+
+    public NetworkVariable<ulong> winClientId;
+
+    [SerializeField] PlayerManager playerManager;
 
     // bool gameStarted = false;
     // bool allowShoot = false;
@@ -40,6 +49,7 @@ public class GameManager : NetworkBehaviour
         // allowShoot = false;
         gun.SetActive(false);
         shootButton.SetActive(false);
+        gameOverScreen.SetActive(true);
         // bottle.gameObject.SetActive(false);
         // gameScreen.SetActive(false);
         // lobbyUI.SetActive(true);
@@ -47,6 +57,17 @@ public class GameManager : NetworkBehaviour
         // activeLobbiesUI.SetActive(false);
         // mainMenuUI.SetActive(true);
         // TurnManager.Instance.ResetGame();
+    }
+
+    [ClientRpc]
+    public void SetWonClientRpc(string sessionId) {
+        gameOverText.text = "You have " + (sessionId == playerManager.sessionId ? "won" : "lost") + "!";
+        Invoke(nameof(ResetGame), 5f);
+    }
+
+    public void ResetGame() {
+        mainMenuUI.SetActive(true);
+        gameOverScreen.SetActive(false);
     }
 
     public void SetBullets(int bullets) {

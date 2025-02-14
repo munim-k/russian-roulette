@@ -9,8 +9,6 @@ public class TurnManager : NetworkBehaviour
 {
     public static TurnManager Instance;
 
-    // [SerializeField]  SessionManager sessionManager;
-
     [Header("Game Settings")]
     public NetworkVariable<int> totalPlayers = new(0); // Set during lobby setup
     public NetworkList<FixedString64Bytes> playerSessionIds = new(); // Set during lobby setup
@@ -93,11 +91,8 @@ public class TurnManager : NetworkBehaviour
         {
             Debug.Log("Bang! You're out!");
             // Handle player elimination logic here (e.g., disable player object)
-            alivePlayersCheck[currentTurnIndex.Value] = false;
+            PlayerDieClientRpc(currentTurn.Value.ToSafeString());
             EliminatePlayerServerRpc(currentTurn.Value);
-            playerManager.player.GetComponent<Player>().Die();
-            currentBulletsInBarrel.Value--;
-            alivePlayerCount.Value--;
         }
         else
         {
@@ -105,6 +100,18 @@ public class TurnManager : NetworkBehaviour
         }
 
         InitExecuteShootServerRpc();
+    }
+
+    [ClientRpc]
+    public void PlayerDieClientRpc(string id) {
+        GameObject[] playerInstances = GameObject.FindGameObjectsWithTag("Player");
+        Debug.Log("Killed Id: " + id);
+        for (int i = 0; i < playerInstances.Length; i++) {
+            Debug.Log("Checking id: " + playerInstances[i].GetComponent<Player>().GetSessionId());
+            if (playerInstances[i].GetComponent<Player>().GetSessionId() == id) {
+                playerInstances[i].GetComponent<Player>().Die();
+            }
+        }
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -131,7 +138,9 @@ public class TurnManager : NetworkBehaviour
     private void EliminatePlayerServerRpc(FixedString64Bytes playerId)
     {
         Debug.Log($"Player {playerId} has been eliminated.");
-        // Add logic to mark the player as eliminated
+        currentBulletsInBarrel.Value--;
+        alivePlayerCount.Value--;
+        alivePlayersCheck[currentTurnIndex.Value] = false;
     }
 
     [ServerRpc]
@@ -160,6 +169,7 @@ public class TurnManager : NetworkBehaviour
         // Implement logic to check how many players are still active
         if (alivePlayerCount.Value == 1)
         {
+            GameManager.Instance.SetWonClientRpc(currentTurn.Value.ToSafeString());
             return true;
         }
         return false;  // Replace with actual check
