@@ -5,6 +5,7 @@ public class Player : NetworkBehaviour
 {
     [SerializeField] GameObject bangLogo;
     [SerializeField] ulong clientId;
+    [SerializeField] private GameObject clickLogo;
     public void SetClientId(ulong id) {
         this.clientId = id;
     }
@@ -19,10 +20,20 @@ public class Player : NetworkBehaviour
         return sessionId;
     }
 
+    public void Click()
+    {
+        clickLogo.SetActive(true);
+        Invoke(nameof(HideClickLogo), 1f);
+    }
+    
+    void HideClickLogo()
+    {
+        clickLogo.SetActive(false);
+    }
     public void Die() {
         gameObject.GetComponent<SpriteRenderer>().color = Color.red;
         bangLogo.SetActive(true);
-        Invoke(nameof(HideBangLogo), 2f);
+        Invoke(nameof(HideBangLogo), 1f);
     }
 
     void HideBangLogo() {

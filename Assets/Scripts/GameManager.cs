@@ -17,7 +17,7 @@ public class GameManager : NetworkBehaviour
     GameObject activeLobbiesUI;
     [SerializeField]
     private SessionManager sessionManager;
-
+    [SerializeField] PlayerListManager playerListManager;
     [SerializeField] GameObject multiplayerSpawnManager;
     [SerializeField] private GameObject gameScreen;
 
@@ -50,6 +50,7 @@ public class GameManager : NetworkBehaviour
         gun.SetActive(false);
         shootButton.SetActive(false);
         gameOverScreen.SetActive(true);
+        
         // bottle.gameObject.SetActive(false);
         // gameScreen.SetActive(false);
         // lobbyUI.SetActive(true);
@@ -112,6 +113,7 @@ public class GameManager : NetworkBehaviour
     {
         activeLobbiesUI.SetActive(false);
         lobbyUI.SetActive(true);
+        playerListManager.Reset();
     }
 
     public bool IsLobbyHost() {

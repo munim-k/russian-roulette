@@ -3532,6 +3532,7 @@ MonoBehaviour:
   mainMenuUI: {fileID: 1936810641}
   activeLobbiesUI: {fileID: 1809993626}
   sessionManager: {fileID: 2094796998}
+  playerListManager: {fileID: 1837452421}
   multiplayerSpawnManager: {fileID: 1820965317}
   gameScreen: {fileID: 107433668}
   gameOverScreen: {fileID: 1618788878}

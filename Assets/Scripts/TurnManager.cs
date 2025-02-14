@@ -3,6 +3,7 @@ using Unity.Netcode;
 using Unity.Collections;
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks.Triggers;
 using Unity.VisualScripting;
 
 public class TurnManager : NetworkBehaviour
@@ -91,25 +92,37 @@ public class TurnManager : NetworkBehaviour
         {
             Debug.Log("Bang! You're out!");
             // Handle player elimination logic here (e.g., disable player object)
-            PlayerDieClientRpc(currentTurn.Value.ToSafeString());
-            EliminatePlayerServerRpc(currentTurn.Value);
+            ulong clientID = NetworkManager.Singleton.LocalClientId;
+            Debug.Log("Client ID: " + clientID);
+            EliminatePlayerServerRpc(currentTurn.Value,clientID);
         }
         else
         {
             Debug.Log("Click! You're safe.");
+            Debug.Log("click client id: " + NetworkManager.Singleton.LocalClientId);
+            ClickServerRpc(NetworkManager.Singleton.LocalClientId);
         }
 
         InitExecuteShootServerRpc();
     }
 
     [ClientRpc]
-    public void PlayerDieClientRpc(string id) {
+    public void PlayerDieClientRpc(ulong id, bool die = true) {
+        
+        
         GameObject[] playerInstances = GameObject.FindGameObjectsWithTag("Player");
         Debug.Log("Killed Id: " + id);
         for (int i = 0; i < playerInstances.Length; i++) {
-            Debug.Log("Checking id: " + playerInstances[i].GetComponent<Player>().GetSessionId());
-            if (playerInstances[i].GetComponent<Player>().GetSessionId() == id) {
-                playerInstances[i].GetComponent<Player>().Die();
+            Debug.Log("Checking id: " + playerInstances[i].GetComponent<Player>().GetClientId());
+            if (playerInstances[i].GetComponent<Player>().GetClientId() == id) {
+                
+                if(die)
+                    playerInstances[i].GetComponent<Player>().Die();
+                else
+                {
+                    Debug.Log("Clicking");
+                    playerInstances[i].GetComponent<Player>().Click();
+                }
             }
         }
     }
@@ -135,10 +148,29 @@ public class TurnManager : NetworkBehaviour
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void EliminatePlayerServerRpc(FixedString64Bytes playerId)
+    private void ClickServerRpc(ulong clientId) {
+        PlayerDieClientRpc(clientId, false);
+    }
+    [ServerRpc(RequireOwnership = false)]
+    private void EliminatePlayerServerRpc(FixedString64Bytes playerId, ulong clientID)
     {
+        Debug.Log("Client ID Elim: " + clientID);
+        PlayerDieClientRpc(clientID);
         Debug.Log($"Player {playerId} has been eliminated.");
         currentBulletsInBarrel.Value--;
+        if (currentBulletsInBarrel.Value == 0)
+        {
+            currentBulletsInBarrel.Value = GameManager.Instance.Bullets;
+            for (int i = 0; i < TurnManager.Instance.totalBullets.Value; i++)
+            {
+                int random = Random.Range(0, TurnManager.Instance.barrelSize.Value - 1);
+                while (TurnManager.Instance.bulletPositions[random])
+                {
+                    random = Random.Range(0, TurnManager.Instance.barrelSize.Value - 1);
+                }
+                TurnManager.Instance.bulletPositions[random] = true;
+            }
+        }
         alivePlayerCount.Value--;
         alivePlayersCheck[currentTurnIndex.Value] = false;
     }
@@ -185,6 +217,8 @@ public class TurnManager : NetworkBehaviour
     [ClientRpc]
     private void EndGameClientRpc()
     {
+        sessionManager.LeaveSession();
         GameManager.Instance.GameOver();
+        
     }
 }

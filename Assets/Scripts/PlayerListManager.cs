@@ -23,6 +23,12 @@ public class PlayerListManager : MonoBehaviour
       activeSession = sessionManager.activeSession;
    }
 
+   public void Reset()
+   {
+      m_PlayerListItems.Clear();
+      m_CachedPlayerListItems.Clear();
+   }
+
    private void Update()
    {
       if(activeSession == null)
