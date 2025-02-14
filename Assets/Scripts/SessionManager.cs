@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Multiplayer;
+using UnityEditor.Networking.PlayerConnection;
 using UnityEngine;
 using UnityUtils;
 
