@@ -11,6 +11,8 @@ public class SessionManager : Singleton<SessionManager> {
     public ISession activeSession;
     public GameManager gameManager;
     public event Action OnSessionJoined;
+
+    public PlayerManager playerManager;
     
     ISession ActiveSession {
         get => activeSession;
@@ -26,11 +28,11 @@ public class SessionManager : Singleton<SessionManager> {
         try {
             await UnityServices.InitializeAsync(); // Initialize Unity Gaming Services SDKs.
             await AuthenticationService.Instance.SignInAnonymouslyAsync(); // Anonymously authenticate the player
-            Debug.Log($"Sign in anonymously succeeded! PlayerID: {AuthenticationService.Instance.PlayerId}");
-            // TurnManager.Instance.currentPlayerId = AuthenticationService.Instance.PlayerId;
-            
+            // Debug.Log($"Sign in anonymously succeeded! PlayerID: {AuthenticationService.Instance.PlayerId}");
+            TurnManager.Instance.currentPlayerId = AuthenticationService.Instance.PlayerId;
+            playerManager.sessionId = AuthenticationService.Instance.PlayerId;
             // Start a new session as a host
-           // StartSessionAsHost();
+            // StartSessionAsHost();
         }
         catch (Exception e) {
             Debug.LogException(e);
@@ -55,14 +57,14 @@ public class SessionManager : Singleton<SessionManager> {
         }.WithRelayNetwork(); 
         
         ActiveSession = await MultiplayerService.Instance.CreateSessionAsync(options);
-        Debug.Log($"Session {ActiveSession.Id} created! Join code: {ActiveSession.Code}");
+        // Debug.Log($"Session {ActiveSession.Id} created! Join code: {ActiveSession.Code}");
         gameManager.SessionStarted();
         OnSessionJoined?.Invoke();
     }
 
     async UniTaskVoid JoinSessionById(string sessionId) {
         ActiveSession = await MultiplayerService.Instance.JoinSessionByIdAsync(sessionId);
-        Debug.Log($"Session {ActiveSession.Id} joined!");
+        // Debug.Log($"Session {ActiveSession.Id} joined!");
         OnSessionJoined?.Invoke();
     }
 

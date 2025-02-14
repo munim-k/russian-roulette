@@ -3,6 +3,7 @@ using Unity.Netcode;
 using Unity.Collections;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 
 public class TurnManager : NetworkBehaviour
 {
@@ -12,24 +13,29 @@ public class TurnManager : NetworkBehaviour
 
     [Header("Game Settings")]
     public NetworkVariable<int> totalPlayers = new(0); // Set during lobby setup
-    // public NetworkVariable<List<string>> playerIds = new(); // Set during lobby setup
-    public NetworkList<FixedString64Bytes> playerIds = new();
-    public SessionManager sessionManager;
-    public NetworkList<bool> alivePlayers = new(); // Set during lobby setup
-    public NetworkVariable<int> alivePlayerCount = new();
+    public NetworkList<FixedString64Bytes> playerSessionIds = new(); // Set during lobby setup
+    public NetworkList<ulong> playerClientIds = new(); // Set during lobby setup
+    public SessionManager sessionManager; // Set during lobby setup
+    public NetworkList<bool> alivePlayersCheck = new(); // Set during lobby setup
+    public NetworkVariable<int> alivePlayerCount = new(); // Set during lobby setup
 
-    public int totalBullets; // Set during lobby setup
-    public int barrelSize = 6;  // Default barrel size for a revolver
+    public NetworkVariable<int> totalBullets = new(); // Set during lobby setup
+    public NetworkVariable<int> barrelSize = new(6);  // Default barrel size for a revolver
 
     public NetworkVariable<int> currentBulletsInBarrel = new(0);
-    public NetworkVariable<FixedString64Bytes> currentTurn = new(""); // id
     public NetworkVariable<int> currentTurnIndex = new(0);
+    public NetworkVariable<FixedString64Bytes> currentTurn = new(""); // id
+    public string currentTurnStr;
     public NetworkList<bool> bulletPositions = new();
-    private int currentChamberPosition = 0;
+    public NetworkVariable<int> currentChamberPosition = new(0);
     public string currentPlayerId;
 
     [SerializeField] GameObject gun; // To spin gun
     [SerializeField] GameObject shootButton; // To enable only on your turn
+
+    public NetworkVariable<bool> someFlag = new(false); // TODO: Rename later
+
+    public PlayerManager playerManager;
 
     private void Awake()
     {
@@ -39,23 +45,17 @@ public class TurnManager : NetworkBehaviour
             Destroy(gameObject);
     }
 
+    [ServerRpc(RequireOwnership = false)]
+    public void InitServerRpc(bool value) {
+        someFlag.Value = value;
+    }
+
     public override void OnNetworkSpawn()
     {
         if (IsServer)
         {
-            // Debug.Log("TurnManager Spawned");
-            for (int i = 0; i < barrelSize; i++) {
+            for (int i = 0; i < barrelSize.Value; i++) {
                 bulletPositions.Add(false);
-            }
-            // Set bullet positions in the barrel
-            for (int i = 0; i < totalBullets; i++)
-            {
-                int random = Random.Range(0, barrelSize - 1);
-                while (bulletPositions[random])
-                {
-                    random = Random.Range(0, barrelSize - 1);
-                }
-                bulletPositions[random] = true;
             }
         }
 
@@ -64,11 +64,18 @@ public class TurnManager : NetworkBehaviour
 
     private void OnTurnChanged(FixedString64Bytes oldTurn, FixedString64Bytes newTurn)
     {
-        Debug.Log($"It's Player {newTurn}'s turn.");
+        currentTurnStr = newTurn.ToSafeString();
         if (newTurn == currentPlayerId)
         {
             Debug.Log("It's your turn! Spin the gun and shoot!");
+        } else {
+            Debug.Log($"It's Player {newTurn}'s turn from 'OnTurnChanged'.");
         }
+    }
+
+    private void OnTurnIndexChange(int oldIndex, int newIndex) {
+        if (IsServer)
+            currentTurn.Value = playerSessionIds[newIndex];
     }
 
     public void Shoot() {
@@ -80,15 +87,15 @@ public class TurnManager : NetworkBehaviour
     {
         yield return new WaitForSeconds(1f);  // Simulate some delay before action
 
-        bool gunFires = bulletPositions[currentChamberPosition];
+        bool gunFires = bulletPositions[currentChamberPosition.Value];
 
         if (gunFires)
         {
             Debug.Log("Bang! You're out!");
             // Handle player elimination logic here (e.g., disable player object)
-            alivePlayers[currentTurnIndex.Value] = false;
-            // EliminatePlayerServerRpc(playerIds.Value[currentTurnIndex.Value]);
-            EliminatePlayerServerRpc(playerIds[currentTurnIndex.Value]);
+            alivePlayersCheck[currentTurnIndex.Value] = false;
+            EliminatePlayerServerRpc(currentTurn.Value);
+            playerManager.player.GetComponent<Player>().Die();
             currentBulletsInBarrel.Value--;
             alivePlayerCount.Value--;
         }
@@ -97,37 +104,30 @@ public class TurnManager : NetworkBehaviour
             Debug.Log("Click! You're safe.");
         }
 
-        if (IsServer)
-        {
-            currentChamberPosition = (currentChamberPosition + 1) % totalPlayers.Value;
-            while (true) {
-                currentTurnIndex.Value = (currentTurnIndex.Value + 1) % totalPlayers.Value;
-                Debug.Log(currentTurnIndex.Value);
-                Debug.Log(alivePlayers[currentTurnIndex.Value]);
-                Debug.Log(totalPlayers.Value);
-                if (alivePlayers[currentTurnIndex.Value]) break;
-            }
-            // currentTurn.Value = playerIds.Value[currentTurnIndex.Value];
-            // ChangeTurnClientRpc(playerIds.Value[currentTurnIndex.Value]);
-            currentTurn.Value = playerIds[currentTurnIndex.Value];
-            ChangeTurnClientRpc(playerIds[currentTurnIndex.Value]);
+        InitExecuteShootServerRpc();
+    }
 
-            AdvanceTurnServerRpc();
-        }
+    [ServerRpc(RequireOwnership = false)]
+    public void InitExecuteShootServerRpc () {
+        ExecuteShootServerRpc();
     }
 
     [ServerRpc]
     public void ExecuteShootServerRpc() {
-
+        currentChamberPosition.Value = (currentChamberPosition.Value + 1) % barrelSize.Value;
+        
+        AdvanceTurnServerRpc();
     }
 
     [ClientRpc]
-    public void ChangeTurnClientRpc(FixedString64Bytes id) {
-        Debug.Log($"It's Player {id}'s turn.");
-        shootButton.SetActive(id == currentPlayerId);
+    public void ChangeTurnClientRpc(FixedString64Bytes currentTurn2, int index) {
+        shootButton.SetActive(currentTurn2 == currentPlayerId);
+        if (someFlag.Value) {
+            gun.GetComponent<Gun>().SpinGun(index, 0, 0.5f, true);
+        }
     }
 
-    [ServerRpc]
+    [ServerRpc(RequireOwnership = false)]
     private void EliminatePlayerServerRpc(FixedString64Bytes playerId)
     {
         Debug.Log($"Player {playerId} has been eliminated.");
@@ -137,11 +137,14 @@ public class TurnManager : NetworkBehaviour
     [ServerRpc]
     public void AdvanceTurnServerRpc()
     {
-        int nextTurn = (currentTurnIndex.Value + 1) % totalPlayers.Value;
-        // Debug.Log(totalPlayers.Value);
-        currentTurnIndex.Value = nextTurn;
-        // currentTurn.Value = playerIds.Value[nextTurn];
-        currentTurn.Value = playerIds[nextTurn];
+        int tempIndex = currentTurnIndex.Value;
+        while (true) {
+            tempIndex = (tempIndex + 1) % totalPlayers.Value;
+            if (alivePlayersCheck[tempIndex]) break;
+        }
+        currentTurnIndex.Value = tempIndex;
+        currentTurn.Value = playerSessionIds[tempIndex];
+        ChangeTurnClientRpc(currentTurn.Value, currentTurnIndex.Value);
 
         // Check if only one player is left
         if (CheckForWinner())
@@ -172,15 +175,6 @@ public class TurnManager : NetworkBehaviour
     [ClientRpc]
     private void EndGameClientRpc()
     {
-        // Debug.Log("Game over!");
-
         GameManager.Instance.GameOver();
-        
-    }
-
-    [ClientRpc]
-    public void SpinGunClientRpc()
-    {
-        gun.transform.Rotate(0, 0, Random.Range(360, 720));
     }
 }

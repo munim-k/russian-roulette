@@ -22,6 +22,7 @@ public class GameManager : NetworkBehaviour
 
     [SerializeField] GameObject bottle;
     [SerializeField] GameObject gun;
+    [SerializeField] GameObject shootButton;
 
     // bool gameStarted = false;
     // bool allowShoot = false;
@@ -38,7 +39,7 @@ public class GameManager : NetworkBehaviour
         // gameStarted = false;
         // allowShoot = false;
         gun.SetActive(false);
-        // shootButton.SetActive(false);
+        shootButton.SetActive(false);
         // bottle.gameObject.SetActive(false);
         // gameScreen.SetActive(false);
         // lobbyUI.SetActive(true);
@@ -107,37 +108,35 @@ public class GameManager : NetworkBehaviour
             gameScreen.SetActive(true);
             StartGameClientRpc();
 
-            // for (int i = 0; i < sessionManager.activeSession.Players.Count; i++)
-            // {
-            //     // Debug.Log("Player " + i + ": " + sessionManager.activeSession.Players[i].Id);
-            // }
-
             int playersInGame = sessionManager.activeSession.Players.Count;
-
-            // Debug.Log("Players in Game: " + playersInGame);
             
             // Initialize TurnManager
             TurnManager.Instance.totalPlayers.Value = playersInGame;
-            TurnManager.Instance.totalBullets = Bullets;
+            TurnManager.Instance.totalBullets.Value = Bullets;
             TurnManager.Instance.currentBulletsInBarrel.Value = Bullets;
             TurnManager.Instance.sessionManager = sessionManager;
             TurnManager.Instance.alivePlayerCount.Value = playersInGame;
-            // TurnManager.Instance.currentPlayerId = sessionManager.activeSession.CurrentPlayer.Id;
-            // TurnManager.Instance.alivePlayers = new bool[playersInGame];
-            Debug.Log(TurnManager.Instance.playerIds);
             for (int i = 0; i < playersInGame; i++)
             {
-                // TurnManager.Instance.alivePlayers[i] = true;
-                TurnManager.Instance.alivePlayers.Add(true);
-                // TurnManager.Instance.playerIds.Value.Add(sessionManager.activeSession.Players[i].Id);
-                TurnManager.Instance.playerIds.Add(sessionManager.activeSession.Players[i].Id);
+                TurnManager.Instance.alivePlayersCheck.Add(true);
+                TurnManager.Instance.playerClientIds.Add(NetworkManager.Singleton.ConnectedClientsList[i].ClientId);
+                TurnManager.Instance.playerSessionIds.Add(sessionManager.activeSession.Players[i].Id);
+            }
+            // Set bullet positions in the barrel
+            for (int i = 0; i < TurnManager.Instance.totalBullets.Value; i++)
+            {
+                int random = Random.Range(0, TurnManager.Instance.barrelSize.Value - 1);
+                while (TurnManager.Instance.bulletPositions[random])
+                {
+                    random = Random.Range(0, TurnManager.Instance.barrelSize.Value - 1);
+                }
+                TurnManager.Instance.bulletPositions[random] = true;
             }
 
             int firstTurn = Random.Range(0, playersInGame);
             TurnManager.Instance.currentTurnIndex.Value = firstTurn;
             TurnManager.Instance.currentTurn.Value = sessionManager.activeSession.Players[firstTurn].Id;
             SpinBottleClientRpc(firstTurn, Random.Range(1, 5), Random.Range(3, 6));
-            TurnManager.Instance.ChangeTurnClientRpc(sessionManager.activeSession.Players[firstTurn].Id);
         }
     }
 
@@ -154,10 +153,7 @@ public class GameManager : NetworkBehaviour
     [ClientRpc]
     void SpinBottleClientRpc(int playerNumber, int spins, int time)
     {
-        // bottle.gameObject.SetActive(true);
         bottle.GetComponent<Bottle>().SpinBottle(playerNumber, spins, time);
     }
-
-
     
 }

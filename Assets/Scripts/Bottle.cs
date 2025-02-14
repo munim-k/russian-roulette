@@ -42,9 +42,10 @@ public class Bottle : NetworkBehaviour
 
         // Ensure the bottle lands exactly on the target degree
         transform.eulerAngles = new Vector3(transform.eulerAngles.x, transform.eulerAngles.y, startRotation + totalRotation);
-        shootButton.SetActive(true);
-        // gameObject.SetActive(false);
+        gameObject.SetActive(false);
         gun.SetActive(true);
         gun.transform.rotation = gameObject.transform.rotation;
+        TurnManager.Instance.ChangeTurnClientRpc(TurnManager.Instance.currentTurn.Value, TurnManager.Instance.currentTurnIndex.Value);
+        TurnManager.Instance.InitServerRpc(true);
     }
 }

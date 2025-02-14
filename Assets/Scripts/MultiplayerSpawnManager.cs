@@ -6,6 +6,8 @@ public class MultiplayerSpawnManager : NetworkBehaviour
     [SerializeField] private Transform[] spawnPoints;  
     [SerializeField] private GameObject playerPrefab;
 
+    [SerializeField] PlayerManager playerManager;
+
     public void OnNetworkSpawnCustom()
     {
         // Debug.Log("OnNetworkSpawn called");
@@ -41,6 +43,12 @@ public class MultiplayerSpawnManager : NetworkBehaviour
 
         // Instantiate the player prefab
         GameObject playerInstance = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+        playerInstance.GetComponent<Player>().SetClientId(clientId);
+        playerInstance.GetComponent<Player>().SetSessionId(playerManager.sessionId);
+        if (clientId == NetworkManager.Singleton.LocalClientId)
+        {
+            playerManager.player = playerInstance;
+        }
 
         // Spawn the player on the network with ownership
         NetworkObject networkObject = playerInstance.GetComponent<NetworkObject>();
