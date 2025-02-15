@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using System.Collections.Generic;
 
 public class MultiplayerSpawnManager : NetworkBehaviour
 {
@@ -10,8 +11,6 @@ public class MultiplayerSpawnManager : NetworkBehaviour
 
     public void OnNetworkSpawnCustom()
     {
-        // Debug.Log("OnNetworkSpawn called");
-
         if (IsServer)
         {
             Debug.Log("Server detected, spawning players...");
@@ -23,17 +22,19 @@ public class MultiplayerSpawnManager : NetworkBehaviour
     {
         Debug.Log("Spawning players for all connected clients");
 
+        int i = 0;
         foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
         {
             Debug.Log($"Spawning player for ClientID: {clientId}");
-            SpawnPlayer(clientId);
+            SpawnPlayer(clientId, i);
+            i++;
         }
     }
 
-    private void SpawnPlayer(ulong clientId)
+    private void SpawnPlayer(ulong clientId, int i)
     {
         // Calculate spawn index based on clientId
-        int spawnIndex = (int)clientId % spawnPoints.Length;
+        int spawnIndex = i;
 
         // Log the clientId and spawnIndex for debugging
         Debug.Log($"ClientID: {clientId}, SpawnIndex: {spawnIndex}");

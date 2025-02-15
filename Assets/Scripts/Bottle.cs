@@ -45,6 +45,7 @@ public class Bottle : NetworkBehaviour
         gameObject.SetActive(false);
         gun.SetActive(true);
         gun.transform.rotation = gameObject.transform.rotation;
+        Debug.Log("SomeFlag: " + TurnManager.Instance.someFlag.Value);
         TurnManager.Instance.ChangeTurnClientRpc(TurnManager.Instance.currentTurn.Value, TurnManager.Instance.currentTurnIndex.Value);
         TurnManager.Instance.InitServerRpc(true);
     }

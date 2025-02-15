@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using Unity.Services.Multiplayer;
 
 public class GameManager : NetworkBehaviour
 {
@@ -29,12 +30,7 @@ public class GameManager : NetworkBehaviour
     [SerializeField] GameObject gun;
     [SerializeField] GameObject shootButton;
 
-    public NetworkVariable<ulong> winClientId;
-
     [SerializeField] PlayerManager playerManager;
-
-    // bool gameStarted = false;
-    // bool allowShoot = false;
 
     private void Awake()
     {
@@ -47,23 +43,27 @@ public class GameManager : NetworkBehaviour
     public void GameOver() {
         // gameStarted = false;
         // allowShoot = false;
+
         gun.SetActive(false);
+        bottle.SetActive(true);        
         shootButton.SetActive(false);
-        gameOverScreen.SetActive(true);
         
-        // bottle.gameObject.SetActive(false);
         // gameScreen.SetActive(false);
         // lobbyUI.SetActive(true);
         // multiplayerSpawnManager.SetActive(false);
         // activeLobbiesUI.SetActive(false);
         // mainMenuUI.SetActive(true);
         // TurnManager.Instance.ResetGame();
+
+        Debug.Log("Resetting");
+
+        gameOverScreen.SetActive(true);
+        Invoke(nameof(ResetGame), 5f);
     }
 
     [ClientRpc]
     public void SetWonClientRpc(string sessionId) {
         gameOverText.text = "You have " + (sessionId == playerManager.sessionId ? "won" : "lost") + "!";
-        Invoke(nameof(ResetGame), 5f);
     }
 
     public void ResetGame() {
@@ -113,39 +113,40 @@ public class GameManager : NetworkBehaviour
     {
         activeLobbiesUI.SetActive(false);
         lobbyUI.SetActive(true);
-        playerListManager.Reset();
+        playerListManager.ResetState();
+        // playerListManager.Reset();
     }
 
     public bool IsLobbyHost() {
+        Debug.Log("Here?");
         return sessionManager.activeSession.IsHost;
     }
 
     public void StartGame()
     {
-        if(!IsLobbyHost())
-            return;
+        Debug.Log("Session Manager 1: " + sessionManager.activeSession);
+        // if(!IsLobbyHost())
+        //     return;
         if (IsServer)
         {
+            Debug.Log("Start 1");
             multiplayerSpawnManager.SetActive(true);
             lobbyUI.SetActive(false);
             gameScreen.SetActive(true);
             StartGameClientRpc();
+            Debug.Log("Start 2");
 
             int playersInGame = sessionManager.activeSession.Players.Count;
             
             // Initialize TurnManager
-            TurnManager.Instance.totalPlayers.Value = playersInGame;
+            // Bullets
             TurnManager.Instance.totalBullets.Value = Bullets;
             TurnManager.Instance.currentBulletsInBarrel.Value = Bullets;
-            TurnManager.Instance.sessionManager = sessionManager;
-            TurnManager.Instance.alivePlayerCount.Value = playersInGame;
-            for (int i = 0; i < playersInGame; i++)
+            TurnManager.Instance.bulletPositions.Clear();
+            for (int i = 0; i < TurnManager.Instance.barrelSize.Value; i++)
             {
-                TurnManager.Instance.alivePlayersCheck.Add(true);
-                TurnManager.Instance.playerClientIds.Add(NetworkManager.Singleton.ConnectedClientsList[i].ClientId);
-                TurnManager.Instance.playerSessionIds.Add(sessionManager.activeSession.Players[i].Id);
+                TurnManager.Instance.bulletPositions.Add(false);
             }
-            // Set bullet positions in the barrel
             for (int i = 0; i < TurnManager.Instance.totalBullets.Value; i++)
             {
                 int random = Random.Range(0, TurnManager.Instance.barrelSize.Value - 1);
@@ -155,6 +156,24 @@ public class GameManager : NetworkBehaviour
                 }
                 TurnManager.Instance.bulletPositions[random] = true;
             }
+
+            // Players
+            TurnManager.Instance.totalPlayers.Value = playersInGame;
+            TurnManager.Instance.alivePlayerCount.Value = playersInGame;
+
+            TurnManager.Instance.alivePlayersCheck.Clear();
+            TurnManager.Instance.playerClientIds.Clear();
+            TurnManager.Instance.playerSessionIds.Clear();
+            for (int i = 0; i < playersInGame; i++)
+            {
+                TurnManager.Instance.alivePlayersCheck.Add(true);
+                TurnManager.Instance.playerClientIds.Add(NetworkManager.Singleton.ConnectedClientsList[i].ClientId);
+                TurnManager.Instance.playerSessionIds.Add(sessionManager.activeSession.Players[i].Id);
+            }
+
+            // Others
+            TurnManager.Instance.someFlag.Value = false;
+            Debug.Log("Start 3");
 
             int firstTurn = Random.Range(0, playersInGame);
             TurnManager.Instance.currentTurnIndex.Value = firstTurn;
@@ -168,9 +187,12 @@ public class GameManager : NetworkBehaviour
     {
         multiplayerSpawnManager.SetActive(true);
         multiplayerSpawnManager.GetComponent<MultiplayerSpawnManager>().OnNetworkSpawnCustom();
+            
         lobbyUI.SetActive(false);
         gameScreen.SetActive(true);
-        // gameStarted = true;
+
+        bottle.transform.rotation = Quaternion.identity;
+        gun.transform.rotation = Quaternion.identity;
     }
 
     [ClientRpc]

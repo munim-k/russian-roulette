@@ -55,27 +55,29 @@ public class SessionManager : Singleton<SessionManager> {
             IsLocked = false,
             IsPrivate = gameManager.isPrivate,
             PlayerProperties = playerProperties 
-        }.WithRelayNetwork(); 
+        }.WithRelayNetwork();
         
         ActiveSession = await MultiplayerService.Instance.CreateSessionAsync(options);
-        // Debug.Log($"Session {ActiveSession.Id} created! Join code: {ActiveSession.Code}");
+        Debug.Log($"Session {ActiveSession.Id} created! Join code: {ActiveSession.Code}");
         gameManager.SessionStarted();
         OnSessionJoined?.Invoke();
     }
 
-    async UniTaskVoid JoinSessionById(string sessionId) {
+    // Doesnt run ever
+    public async UniTaskVoid JoinSessionById(string sessionId) {
         ActiveSession = await MultiplayerService.Instance.JoinSessionByIdAsync(sessionId);
-        // Debug.Log($"Session {ActiveSession.Id} joined!");
+        Debug.Log($"Session {ActiveSession.Id} joined!");
         OnSessionJoined?.Invoke();
     }
 
-    async UniTaskVoid JoinSessionByCode(string sessionCode) {
+    // Doesnt run ever
+    public async UniTaskVoid JoinSessionByCode(string sessionCode) {
         ActiveSession = await MultiplayerService.Instance.JoinSessionByCodeAsync(sessionCode);
         Debug.Log($"Session {ActiveSession.Id} joined!");
         OnSessionJoined?.Invoke();
     }
 
-    async UniTaskVoid KickPlayer(string playerId) {
+    async UniTask KickPlayer(string playerId) {
         if (!ActiveSession.IsHost) return;
         await ActiveSession.AsHost().RemovePlayerAsync(playerId);
     }
@@ -86,18 +88,24 @@ public class SessionManager : Singleton<SessionManager> {
         return results.Sessions;
     }
 
+    async public UniTask KickAll() {
+        if (!ActiveSession.IsHost) return;
+        foreach (var player in ActiveSession.Players) {
+            if (player.Id == AuthenticationService.Instance.PlayerId) continue;
+            await KickPlayer(player.Id);
+        }
+    }
+
    
-    public async UniTaskVoid LeaveSession() {
-        Debug.Log("Leaving session...");
-            try {
-                await ActiveSession.LeaveAsync();
-            }
-            catch {
-                // Ignored as we are exiting the game
-            }
-            finally {
-                ActiveSession = null;
-            }
-        
+    public async UniTask LeaveSession() {
+        try {
+            await ActiveSession.LeaveAsync();
+        }
+        catch {
+            // Ignored as we are exiting the game
+        }
+        finally {
+            ActiveSession = null;
+        }
     }
 }

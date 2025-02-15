@@ -14,19 +14,17 @@ public class TurnManager : NetworkBehaviour
     public NetworkVariable<int> totalPlayers = new(0); // Set during lobby setup
     public NetworkList<FixedString64Bytes> playerSessionIds = new(); // Set during lobby setup
     public NetworkList<ulong> playerClientIds = new(); // Set during lobby setup
-    public SessionManager sessionManager; // Set during lobby setup
     public NetworkList<bool> alivePlayersCheck = new(); // Set during lobby setup
     public NetworkVariable<int> alivePlayerCount = new(); // Set during lobby setup
 
-    public NetworkVariable<int> totalBullets = new(); // Set during lobby setup
     public NetworkVariable<int> barrelSize = new(6);  // Default barrel size for a revolver
-
+    public NetworkVariable<int> totalBullets = new(); // Set during lobby setup
     public NetworkVariable<int> currentBulletsInBarrel = new(0);
-    public NetworkVariable<int> currentTurnIndex = new(0);
-    public NetworkVariable<FixedString64Bytes> currentTurn = new(""); // id
-    public string currentTurnStr;
     public NetworkList<bool> bulletPositions = new();
     public NetworkVariable<int> currentChamberPosition = new(0);
+
+    public NetworkVariable<int> currentTurnIndex = new(0);
+    public NetworkVariable<FixedString64Bytes> currentTurn = new(""); // id
     public string currentPlayerId;
 
     [SerializeField] GameObject gun; // To spin gun
@@ -63,7 +61,6 @@ public class TurnManager : NetworkBehaviour
 
     private void OnTurnChanged(FixedString64Bytes oldTurn, FixedString64Bytes newTurn)
     {
-        currentTurnStr = newTurn.ToSafeString();
         if (newTurn == currentPlayerId)
         {
             Debug.Log("It's your turn! Spin the gun and shoot!");
@@ -78,7 +75,6 @@ public class TurnManager : NetworkBehaviour
     }
 
     public void Shoot() {
-        Debug.Log("Shoot Pressed");
         StartCoroutine(nameof(PlayerTurnCoroutine));
     }
 
@@ -87,19 +83,18 @@ public class TurnManager : NetworkBehaviour
         yield return new WaitForSeconds(1f);  // Simulate some delay before action
 
         bool gunFires = bulletPositions[currentChamberPosition.Value];
+        shootButton.SetActive(false);
 
         if (gunFires)
         {
             Debug.Log("Bang! You're out!");
             // Handle player elimination logic here (e.g., disable player object)
             ulong clientID = NetworkManager.Singleton.LocalClientId;
-            Debug.Log("Client ID: " + clientID);
             EliminatePlayerServerRpc(currentTurn.Value,clientID);
         }
         else
         {
             Debug.Log("Click! You're safe.");
-            Debug.Log("click client id: " + NetworkManager.Singleton.LocalClientId);
             ClickServerRpc(NetworkManager.Singleton.LocalClientId);
         }
 
@@ -109,18 +104,14 @@ public class TurnManager : NetworkBehaviour
     [ClientRpc]
     public void PlayerDieClientRpc(ulong id, bool die = true) {
         
-        
         GameObject[] playerInstances = GameObject.FindGameObjectsWithTag("Player");
-        Debug.Log("Killed Id: " + id);
         for (int i = 0; i < playerInstances.Length; i++) {
-            Debug.Log("Checking id: " + playerInstances[i].GetComponent<Player>().GetClientId());
             if (playerInstances[i].GetComponent<Player>().GetClientId() == id) {
                 
                 if(die)
                     playerInstances[i].GetComponent<Player>().Die();
                 else
                 {
-                    Debug.Log("Clicking");
                     playerInstances[i].GetComponent<Player>().Click();
                 }
             }
@@ -154,7 +145,6 @@ public class TurnManager : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     private void EliminatePlayerServerRpc(FixedString64Bytes playerId, ulong clientID)
     {
-        Debug.Log("Client ID Elim: " + clientID);
         PlayerDieClientRpc(clientID);
         Debug.Log($"Player {playerId} has been eliminated.");
         currentBulletsInBarrel.Value--;
@@ -211,14 +201,18 @@ public class TurnManager : NetworkBehaviour
     private void EndGameServerRpc()
     {
         Debug.Log("Game over!");
+        KickAll();
         EndGameClientRpc();
+    }
+
+    async private void KickAll() {
+        await SessionManager.Instance.KickAll();
+        await SessionManager.Instance.LeaveSession();
     }
 
     [ClientRpc]
     private void EndGameClientRpc()
     {
-        sessionManager.LeaveSession();
         GameManager.Instance.GameOver();
-        
     }
 }

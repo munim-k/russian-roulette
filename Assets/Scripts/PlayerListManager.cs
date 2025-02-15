@@ -23,8 +23,13 @@ public class PlayerListManager : MonoBehaviour
       activeSession = sessionManager.activeSession;
    }
 
-   public void Reset()
+   public void ResetState()
    {
+      Debug.Log("Clearing player list");
+      foreach (var playerListItem in m_PlayerListItems.Values)
+      {
+         Destroy(playerListItem.gameObject);
+      }
       m_PlayerListItems.Clear();
       m_CachedPlayerListItems.Clear();
    }
@@ -53,7 +58,6 @@ public class PlayerListManager : MonoBehaviour
          var playerName = "Anonymous";
          if (player.Properties.TryGetValue("playerName", out var playerNameProperty))
             playerName = playerNameProperty.Value;
-            // Debug.Log(playerName);
          
          playerListItem.Initialize(playerName, playerId);
       }
