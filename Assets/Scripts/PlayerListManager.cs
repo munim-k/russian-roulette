@@ -25,7 +25,7 @@ public class PlayerListManager : MonoBehaviour
 
    public void ResetState()
    {
-      Debug.Log("Clearing player list");
+      // Debug.Log("Clearing player list");
       foreach (var playerListItem in m_PlayerListItems.Values)
       {
          Destroy(playerListItem.gameObject);

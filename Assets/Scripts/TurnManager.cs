@@ -65,7 +65,7 @@ public class TurnManager : NetworkBehaviour
         {
             Debug.Log("It's your turn! Spin the gun and shoot!");
         } else {
-            Debug.Log($"It's Player {newTurn}'s turn from 'OnTurnChanged'.");
+            Debug.Log($"It's Player {newTurn}'s turn.");
         }
     }
 
@@ -142,11 +142,12 @@ public class TurnManager : NetworkBehaviour
     private void ClickServerRpc(ulong clientId) {
         PlayerDieClientRpc(clientId, false);
     }
+
     [ServerRpc(RequireOwnership = false)]
     private void EliminatePlayerServerRpc(FixedString64Bytes playerId, ulong clientID)
     {
         PlayerDieClientRpc(clientID);
-        Debug.Log($"Player {playerId} has been eliminated.");
+        // Debug.Log($"Player {playerId} has been eliminated.");
         currentBulletsInBarrel.Value--;
         if (currentBulletsInBarrel.Value == 0)
         {
@@ -207,12 +208,13 @@ public class TurnManager : NetworkBehaviour
 
     async private void KickAll() {
         await SessionManager.Instance.KickAll();
-        await SessionManager.Instance.LeaveSession();
+        // await SessionManager.Instance.LeaveSession();
     }
 
     [ClientRpc]
     private void EndGameClientRpc()
     {
+        NetworkManager.Singleton.Shutdown();
         GameManager.Instance.GameOver();
     }
 }

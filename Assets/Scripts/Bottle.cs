@@ -44,8 +44,8 @@ public class Bottle : NetworkBehaviour
         transform.eulerAngles = new Vector3(transform.eulerAngles.x, transform.eulerAngles.y, startRotation + totalRotation);
         gameObject.SetActive(false);
         gun.SetActive(true);
+        Debug.Log("Gun Active: " + gun.activeInHierarchy);
         gun.transform.rotation = gameObject.transform.rotation;
-        Debug.Log("SomeFlag: " + TurnManager.Instance.someFlag.Value);
         TurnManager.Instance.ChangeTurnClientRpc(TurnManager.Instance.currentTurn.Value, TurnManager.Instance.currentTurnIndex.Value);
         TurnManager.Instance.InitServerRpc(true);
     }

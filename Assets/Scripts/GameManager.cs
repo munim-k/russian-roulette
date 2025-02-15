@@ -55,8 +55,6 @@ public class GameManager : NetworkBehaviour
         // mainMenuUI.SetActive(true);
         // TurnManager.Instance.ResetGame();
 
-        Debug.Log("Resetting");
-
         gameOverScreen.SetActive(true);
         Invoke(nameof(ResetGame), 5f);
     }
@@ -67,8 +65,9 @@ public class GameManager : NetworkBehaviour
     }
 
     public void ResetGame() {
-        mainMenuUI.SetActive(true);
         gameOverScreen.SetActive(false);
+        gameScreen.SetActive(false);
+        mainMenuUI.SetActive(true);
     }
 
     public void SetBullets(int bullets) {
@@ -118,31 +117,33 @@ public class GameManager : NetworkBehaviour
     }
 
     public bool IsLobbyHost() {
-        Debug.Log("Here?");
         return sessionManager.activeSession.IsHost;
     }
 
     public void StartGame()
     {
-        Debug.Log("Session Manager 1: " + sessionManager.activeSession);
-        // if(!IsLobbyHost())
-        //     return;
+        if(!IsLobbyHost())
+            return;
         if (IsServer)
         {
-            Debug.Log("Start 1");
-            multiplayerSpawnManager.SetActive(true);
-            lobbyUI.SetActive(false);
-            gameScreen.SetActive(true);
-            StartGameClientRpc();
-            Debug.Log("Start 2");
-
             int playersInGame = sessionManager.activeSession.Players.Count;
+
+            if (playersInGame < 2)
+            {
+                Debug.Log("Not enough players to start the game.");
+                return;
+            }
+
+            multiplayerSpawnManager.SetActive(true);
+            StartGameClientRpc();
+
             
             // Initialize TurnManager
             // Bullets
             TurnManager.Instance.totalBullets.Value = Bullets;
             TurnManager.Instance.currentBulletsInBarrel.Value = Bullets;
             TurnManager.Instance.bulletPositions.Clear();
+            TurnManager.Instance.currentChamberPosition.Value = 0;
             for (int i = 0; i < TurnManager.Instance.barrelSize.Value; i++)
             {
                 TurnManager.Instance.bulletPositions.Add(false);
@@ -173,7 +174,6 @@ public class GameManager : NetworkBehaviour
 
             // Others
             TurnManager.Instance.someFlag.Value = false;
-            Debug.Log("Start 3");
 
             int firstTurn = Random.Range(0, playersInGame);
             TurnManager.Instance.currentTurnIndex.Value = firstTurn;
@@ -190,14 +190,14 @@ public class GameManager : NetworkBehaviour
             
         lobbyUI.SetActive(false);
         gameScreen.SetActive(true);
-
-        bottle.transform.rotation = Quaternion.identity;
-        gun.transform.rotation = Quaternion.identity;
     }
 
     [ClientRpc]
     void SpinBottleClientRpc(int playerNumber, int spins, int time)
     {
+        bottle.SetActive(true);
+        bottle.transform.rotation = Quaternion.identity;
+        // Debug.Log("Spinning bottle for player " + playerNumber + " with " + spins + " spins and " + time + " seconds."); 
         bottle.GetComponent<Bottle>().SpinBottle(playerNumber, spins, time);
     }
     

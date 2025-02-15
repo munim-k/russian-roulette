@@ -19,7 +19,7 @@ public class SessionManager : Singleton<SessionManager> {
         get => activeSession;
         set {
             activeSession = value;
-            Debug.Log($"Active session: {activeSession}");
+            // Debug.Log($"Active session: {activeSession}");
         }
     }
     
@@ -58,7 +58,7 @@ public class SessionManager : Singleton<SessionManager> {
         }.WithRelayNetwork();
         
         ActiveSession = await MultiplayerService.Instance.CreateSessionAsync(options);
-        Debug.Log($"Session {ActiveSession.Id} created! Join code: {ActiveSession.Code}");
+        // Debug.Log($"Session {ActiveSession.Id} created! Join code: {ActiveSession.Code}");
         gameManager.SessionStarted();
         OnSessionJoined?.Invoke();
     }
@@ -66,14 +66,14 @@ public class SessionManager : Singleton<SessionManager> {
     // Doesnt run ever
     public async UniTaskVoid JoinSessionById(string sessionId) {
         ActiveSession = await MultiplayerService.Instance.JoinSessionByIdAsync(sessionId);
-        Debug.Log($"Session {ActiveSession.Id} joined!");
+        // Debug.Log($"Session {ActiveSession.Id} joined!");
         OnSessionJoined?.Invoke();
     }
 
     // Doesnt run ever
     public async UniTaskVoid JoinSessionByCode(string sessionCode) {
         ActiveSession = await MultiplayerService.Instance.JoinSessionByCodeAsync(sessionCode);
-        Debug.Log($"Session {ActiveSession.Id} joined!");
+        // Debug.Log($"Session {ActiveSession.Id} joined!");
         OnSessionJoined?.Invoke();
     }
 
@@ -94,6 +94,13 @@ public class SessionManager : Singleton<SessionManager> {
             if (player.Id == AuthenticationService.Instance.PlayerId) continue;
             await KickPlayer(player.Id);
         }
+        try {
+            await LeaveSession();
+            Debug.Log("Host Left");
+        }
+        catch {
+            // Ignored as we are exiting the game
+        }
     }
 
    
@@ -105,7 +112,7 @@ public class SessionManager : Singleton<SessionManager> {
             // Ignored as we are exiting the game
         }
         finally {
-            ActiveSession = null;
+            // ActiveSession = null;
         }
     }
 }
